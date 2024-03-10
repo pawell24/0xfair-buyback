@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 interface IUniswapV2Router02 {
     function WETH() external pure returns (address);
     function swapExactETHForTokensSupportingFeeOnTransferTokens(
@@ -29,13 +31,12 @@ interface IFairStaking {
     function depositRewardTokens(uint256 _amount) external;
 }
 
-contract TokenTaxDistribution {
+contract TokenTaxDistribution is Ownable {
     address public immutable recipient;
     IUniswapV2Router02 public immutable uniswapV2Router;
     uint256 public taxPercentage = 30;
     uint256 public burnPercentage = 5;
     ITaxToken public token;
-    address public owner;
     IFairStaking public fairStaking;
 
     constructor(
@@ -43,17 +44,11 @@ contract TokenTaxDistribution {
         address _uniswapRouter,
         address _tokenAddress,
         address _fairStakingAddress
-    ) {
-        owner = msg.sender;
+    ) Ownable(msg.sender) {
         recipient = _recipient;
         uniswapV2Router = IUniswapV2Router02(_uniswapRouter);
         token = ITaxToken(_tokenAddress);
         fairStaking = IFairStaking(_fairStakingAddress);
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
     }
 
     receive() external payable {
@@ -89,7 +84,7 @@ contract TokenTaxDistribution {
 
     function manuallyWithdrawETH(uint256 amount) external onlyOwner {
         require(amount <= address(this).balance, "Insufficient ETH balance");
-        payable(owner).transfer(amount);
+        payable(owner()).transfer(amount);
     }
 
     function manuallyTransferTokens(
