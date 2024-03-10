@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const factoryArtifact = require("@uniswap/v2-core/build/UniswapV2Factory.json");
 const routerArtifact = require("@uniswap/v2-periphery/build/UniswapV2Router02.json");
 const pairArtifact = require("@uniswap/v2-periphery/build/IUniswapV2Pair.json");
-const { Contract, ContractFactory } = require("ethers");
+const { Contract } = require("ethers");
 
 async function deployUniswapContracts(owner) {
   // Deploy a WETH contract
@@ -67,31 +67,32 @@ describe("TokenTaxDistribution", function () {
     const tx1 = await factory.createPair(fairToken, weth);
     await tx1.wait();
 
-    const MaxUint256 =
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
     const pairAddress = await factory.getPair(fairToken, weth);
     console.log(`Pair deployed to ${pairAddress}`);
 
     const pair = new Contract(pairAddress, pairArtifact.abi, owner);
 
-    const approveTx1 = await weth.approve(router, MaxUint256);
-    await approveTx1.wait();
-    const approvalTx2 = await fairToken.approve(router, MaxUint256);
-    await approvalTx2.wait();
-
-    const token0Amount = ethers.parseUnits("0.0001");
-    const ethAmount = ethers.parseUnits("1");
-    console.log({ fairToken });
-    const addLiquidityTx = await router.addLiquidityETH(
-      fairToken,
-      10000,
-      0,
-      0,
-      owner.address, // recipient of LP tokens
-      Math.floor(Date.now() / 1000), // Current timestamp,
-      { value: ethAmount }
+    const approveTx1 = await fairToken.approve(
+      router,
+      100000000000000000000000n
     );
+    await approveTx1.wait();
+    // Calculate the deadline: current timestamp + 15 minutes (for example)
+    const deadline = Math.floor(Date.now() / 1000) + 900; // 900 seconds = 15 minutes
+
+    // Add liquidity
+    const ethAmount = ethers.parseEther("1");
+
+    const addLiquidityTx = await router.addLiquidityETH(
+      fairToken, // FairToken address
+      100000000000000000000000n, // amountTokenDesired (1000000 tokens)
+      100000000000000000000000n, // amountTokenMin (minimum acceptable amount of tokens)
+      ethAmount, // amountETHMin (minimum acceptable amount of ETH)
+      owner, // recipient of LP tokens
+      deadline, // deadline
+      { value: ethAmount } // Value of ETH to send
+    );
+    console.log("lol");
 
     await addLiquidityTx.wait();
     reserves = await pair.getReserves();
@@ -102,15 +103,13 @@ describe("TokenTaxDistribution", function () {
 
   describe("FairToken Deployment", function () {
     it("Should deploy FairToken with the correct initial supply", async function () {
-      const initialSupply = 1000000000000000000000000n; // Use BigInt literal
-
       // Check the total supply of FairToken
       const totalSupply = await fairToken.totalSupply();
-      expect(totalSupply).to.equal(initialSupply);
+      expect(totalSupply).to.equal(1000000000000000000000000n);
 
       // Check the balance of the deployer (owner)
       const ownerBalance = await fairToken.balanceOf(owner.address);
-      expect(ownerBalance).to.equal(999999999999999999999000n);
+      expect(ownerBalance).to.equal(900000000000000000000000n);
     });
   });
 
@@ -184,7 +183,40 @@ describe("TokenTaxDistribution", function () {
     });
   });
 
-  describe("Should buy back tokens", async function () {
-    it("Should withdraw ETH to owner", function () {});
+  describe("Should buy back tokens", function () {
+    it("Should send tokens and buyback", async function () {
+      const ethAmount = ethers.parseEther("10");
+      const [signer] = await ethers.getSigners();
+      // Send ETH to the contract
+      const tx = await signer.sendTransaction({
+        to: tokenTaxDistribution,
+        value: ethAmount,
+      });
+      await tx.wait();
+
+      console.log(
+        `Successfully sent ${ethers.formatEther(
+          ethAmount
+        )} ETH to the contract at address: ${tokenTaxDistribution.target}`
+      );
+
+      const provider = ethers.provider;
+
+      // Get the ETH balance of the address
+      const balance = await provider.getBalance(tokenTaxDistribution);
+      console.log({ balance });
+
+      const stakingBalance = await fairToken.balanceOf(fairStaking);
+
+      console.log({ stakingBalance });
+
+      const txBuyAndDeposit = await tokenTaxDistribution.buyAndDepositTokens();
+
+      await txBuyAndDeposit.wait();
+
+      const stakingBalance1 = await fairToken.balanceOf(fairStaking);
+
+      console.log({ stakingBalance1 });
+    });
   });
 });
