@@ -43,7 +43,6 @@ describe("TokenTaxDistribution", function () {
 
   beforeEach(async function () {
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
-    console.log({ owner });
 
     FairToken = await ethers.getContractFactory("FairToken");
     fairToken = await FairToken.deploy(1000000);
@@ -68,7 +67,6 @@ describe("TokenTaxDistribution", function () {
     await tx1.wait();
 
     const pairAddress = await factory.getPair(fairToken, weth);
-    console.log(`Pair deployed to ${pairAddress}`);
 
     const pair = new Contract(pairAddress, pairArtifact.abi, owner);
 
@@ -92,13 +90,12 @@ describe("TokenTaxDistribution", function () {
       deadline, // deadline
       { value: ethAmount } // Value of ETH to send
     );
-    console.log("lol");
 
     await addLiquidityTx.wait();
     reserves = await pair.getReserves();
-    console.log(
-      `Reserves: ${reserves[0].toString()}, ${reserves[1].toString()}`
-    );
+    // console.log(
+    //   `Reserves: ${reserves[0].toString()}, ${reserves[1].toString()}`
+    // );
   });
 
   describe("FairToken Deployment", function () {
@@ -183,8 +180,8 @@ describe("TokenTaxDistribution", function () {
     });
   });
 
-  describe("Should buy back tokens", function () {
-    it("Should send tokens and buyback", async function () {
+  describe("Buyback tokens", function () {
+    it("Should send ETH and buyback tokens", async function () {
       const ethAmount = ethers.parseEther("10");
       const [signer] = await ethers.getSigners();
       // Send ETH to the contract
@@ -194,21 +191,15 @@ describe("TokenTaxDistribution", function () {
       });
       await tx.wait();
 
-      console.log(
-        `Successfully sent ${ethers.formatEther(
-          ethAmount
-        )} ETH to the contract at address: ${tokenTaxDistribution.target}`
-      );
-
       const provider = ethers.provider;
 
-      // Get the ETH balance of the address
       const balance = await provider.getBalance(tokenTaxDistribution);
-      console.log({ balance });
+
+      expect(balance).to.equal(ethers.parseEther(String(10 * 0.3)));
 
       const stakingBalance = await fairToken.balanceOf(fairStaking);
 
-      console.log({ stakingBalance });
+      expect(stakingBalance).to.equal(0);
 
       const txBuyAndDeposit = await tokenTaxDistribution.buyAndDepositTokens();
 
@@ -216,7 +207,7 @@ describe("TokenTaxDistribution", function () {
 
       const stakingBalance1 = await fairToken.balanceOf(fairStaking);
 
-      console.log({ stakingBalance1 });
+      expect(stakingBalance1).to.above(0);
     });
   });
 });
