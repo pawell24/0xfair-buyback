@@ -31,7 +31,7 @@ interface IFairStaking {
 contract TokenTaxDistribution {
     address public immutable recipient;
     IUniswapV2Router02 public immutable uniswapV2Router;
-    uint256 public constant taxPercentage = 30;
+    uint256 public taxPercentage = 30;
     ITaxToken public token;
     address public owner;
     IFairStaking public fairStaking;
@@ -94,5 +94,10 @@ contract TokenTaxDistribution {
             "Insufficient token balance"
         );
         require(token.transfer(to, amount), "Transfer failed");
+    }
+
+    function setTaxPercentage(uint256 _taxPercentage) external onlyOwner {
+        require(_taxPercentage <= 100, "Tax percentage should be <= 100");
+        taxPercentage = _taxPercentage;
     }
 }
