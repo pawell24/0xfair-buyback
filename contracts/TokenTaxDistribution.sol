@@ -22,6 +22,7 @@ interface ITaxToken {
     function approve(address spender, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
     function transferOwnership(address newOwner) external;
+    function burn(uint256 value) external;
 }
 
 interface IFairStaking {
@@ -32,6 +33,7 @@ contract TokenTaxDistribution {
     address public immutable recipient;
     IUniswapV2Router02 public immutable uniswapV2Router;
     uint256 public taxPercentage = 30;
+    uint256 public burnPercentage = 5;
     ITaxToken public token;
     address public owner;
     IFairStaking public fairStaking;
@@ -76,8 +78,13 @@ contract TokenTaxDistribution {
 
         uint256 amount = token.balanceOf(address(this));
 
-        token.approve(address(fairStaking), amount);
-        fairStaking.depositRewardTokens(amount);
+        uint256 burnAmount = (amount * burnPercentage) / 100;
+
+        token.burn(burnAmount);
+
+        token.approve(address(fairStaking), amount - burnAmount);
+
+        fairStaking.depositRewardTokens(amount - burnAmount);
     }
 
     function manuallyWithdrawETH(uint256 amount) external onlyOwner {
@@ -99,5 +106,10 @@ contract TokenTaxDistribution {
     function setTaxPercentage(uint256 _taxPercentage) external onlyOwner {
         require(_taxPercentage <= 100, "Tax percentage should be <= 100");
         taxPercentage = _taxPercentage;
+    }
+
+    function setBurnPercentage(uint256 _burnPercentage) external onlyOwner {
+        require(_burnPercentage <= 100, "Burn percentage should be <= 100");
+        burnPercentage = _burnPercentage;
     }
 }

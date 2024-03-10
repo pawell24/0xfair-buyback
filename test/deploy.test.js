@@ -44,13 +44,13 @@ describe("TokenTaxDistribution", function () {
   beforeEach(async function () {
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
 
-    FairToken = await ethers.getContractFactory("FairToken");
-    fairToken = await FairToken.deploy(1000000);
+    [factory, router, weth] = await deployUniswapContracts(owner);
+
+    FairToken = await ethers.getContractFactory("Fair");
+    fairToken = await FairToken.deploy(router);
 
     FairStaking = await ethers.getContractFactory("FairStaking");
     fairStaking = await FairStaking.deploy(fairToken);
-
-    [factory, router, weth] = await deployUniswapContracts(owner);
 
     TokenTaxDistribution = await ethers.getContractFactory(
       "TokenTaxDistribution"
@@ -102,11 +102,11 @@ describe("TokenTaxDistribution", function () {
     it("Should deploy FairToken with the correct initial supply", async function () {
       // Check the total supply of FairToken
       const totalSupply = await fairToken.totalSupply();
-      expect(totalSupply).to.equal(1000000000000000000000000n);
+      expect(totalSupply).to.equal(888000000000000000000000000n);
 
       // Check the balance of the deployer (owner)
       const ownerBalance = await fairToken.balanceOf(owner.address);
-      expect(ownerBalance).to.equal(900000000000000000000000n);
+      expect(ownerBalance).to.equal(887900000000000000000000000n);
     });
   });
 
@@ -203,6 +203,10 @@ describe("TokenTaxDistribution", function () {
       const stakingBalance1 = await fairToken.balanceOf(fairStaking);
 
       expect(stakingBalance1).to.above(0);
+
+      const totalSupply = await fairToken.totalSupply();
+
+      expect(totalSupply).to.below(888000000000000000000000000n);
     });
   });
 });
