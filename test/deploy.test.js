@@ -160,10 +160,6 @@ describe("TokenTaxDistribution", function () {
         owner.address
       );
 
-      const initialContractBalance = await ethers.provider.getBalance(
-        tokenTaxDistribution.target
-      );
-
       // Define the amount to withdraw from the contract
       const withdrawAmount = ethers.parseEther("0.1");
 
@@ -171,7 +167,6 @@ describe("TokenTaxDistribution", function () {
       await tokenTaxDistribution.manuallyWithdrawETH(withdrawAmount);
 
       // Retrieve the final balance of the owner and the contract after withdrawal
-      const finalOwnerBalance = await ethers.provider.getBalance(owner.address);
       const finalContractBalance = await ethers.provider.getBalance(
         tokenTaxDistribution.target
       );
@@ -181,7 +176,7 @@ describe("TokenTaxDistribution", function () {
   });
 
   describe("Buyback tokens", function () {
-    it("Should send ETH and buyback tokens", async function () {
+    it("Should send ETH to the contract and perform buyback of tokens", async function () {
       const ethAmount = ethers.parseEther("10");
       const [signer] = await ethers.getSigners();
       // Send ETH to the contract
