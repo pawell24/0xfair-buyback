@@ -32,7 +32,7 @@ interface IFairStaking {
 }
 
 contract TokenTaxDistribution is Ownable {
-    address public immutable recipient;
+    address public recipient;
     IUniswapV2Router02 public immutable uniswapV2Router;
     uint256 public taxPercentage = 30;
     uint256 public burnPercentage = 5;
@@ -106,5 +106,10 @@ contract TokenTaxDistribution is Ownable {
     function setBurnPercentage(uint256 _burnPercentage) external onlyOwner {
         require(_burnPercentage <= 100, "Burn percentage should be <= 100");
         burnPercentage = _burnPercentage;
+    }
+
+    function setRecipient(address _recipient) external onlyOwner {
+        require(_recipient != address(0), "Invalid recipient address");
+        recipient = _recipient;
     }
 }

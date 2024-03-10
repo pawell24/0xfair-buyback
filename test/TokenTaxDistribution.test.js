@@ -161,6 +161,12 @@ describe("TokenTaxDistribution", function () {
 
       expect(finalContractBalance).to.equal(ethers.parseEther("0.2"));
     });
+
+    it("Should set recipient", async function () {
+      const newRecipient = addr2.address;
+      await tokenTaxDistribution.setRecipient(newRecipient);
+      expect(await tokenTaxDistribution.recipient()).to.equal(newRecipient);
+    });
   });
 
   describe("Buyback tokens", function () {
