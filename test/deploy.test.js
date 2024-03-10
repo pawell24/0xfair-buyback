@@ -6,7 +6,6 @@ const pairArtifact = require("@uniswap/v2-periphery/build/IUniswapV2Pair.json");
 const { Contract } = require("ethers");
 
 async function deployUniswapContracts(owner) {
-  // Deploy a WETH contract
   const WETH = await ethers.getContractFactory("WETH9");
   const weth = await WETH.deploy();
 
@@ -75,20 +74,19 @@ describe("TokenTaxDistribution", function () {
       100000000000000000000000n
     );
     await approveTx1.wait();
-    // Calculate the deadline: current timestamp + 15 minutes (for example)
-    const deadline = Math.floor(Date.now() / 1000) + 900; // 900 seconds = 15 minutes
 
-    // Add liquidity
+    const deadline = Math.floor(Date.now() / 1000) + 900;
+
     const ethAmount = ethers.parseEther("1");
 
     const addLiquidityTx = await router.addLiquidityETH(
-      fairToken, // FairToken address
-      100000000000000000000000n, // amountTokenDesired (1000000 tokens)
-      100000000000000000000000n, // amountTokenMin (minimum acceptable amount of tokens)
-      ethAmount, // amountETHMin (minimum acceptable amount of ETH)
-      owner, // recipient of LP tokens
-      deadline, // deadline
-      { value: ethAmount } // Value of ETH to send
+      fairToken,
+      100000000000000000000000n,
+      100000000000000000000000n,
+      ethAmount,
+      owner,
+      deadline,
+      { value: ethAmount }
     );
 
     await addLiquidityTx.wait();
@@ -100,11 +98,9 @@ describe("TokenTaxDistribution", function () {
 
   describe("FairToken Deployment", function () {
     it("Should deploy FairToken with the correct initial supply", async function () {
-      // Check the total supply of FairToken
       const totalSupply = await fairToken.totalSupply();
       expect(totalSupply).to.equal(888000000000000000000000000n);
 
-      // Check the balance of the deployer (owner)
       const ownerBalance = await fairToken.balanceOf(owner.address);
       expect(ownerBalance).to.equal(887900000000000000000000000n);
     });
@@ -134,39 +130,31 @@ describe("TokenTaxDistribution", function () {
 
   describe("Contract functions", function () {
     it("Should set tax percentage", async function () {
-      const newTaxPercentage = 30; // New tax percentage
+      const newTaxPercentage = 30;
 
-      // Call setTaxPercentage function
       await tokenTaxDistribution.setTaxPercentage(newTaxPercentage);
 
-      // Check if the tax percentage has been set correctly
       expect(await tokenTaxDistribution.taxPercentage()).to.equal(
         newTaxPercentage
       );
     });
 
     it("Should withdraw ETH to owner", async function () {
-      // Define the amount to send to the contract
       const sendAmount = ethers.parseEther("1.0");
 
-      // Send Ether to the contract from addr1
       await addr1.sendTransaction({
         to: tokenTaxDistribution.target,
         value: sendAmount,
       });
 
-      // Retrieve the initial balance of the owner and the contract
       const initialOwnerBalance = await ethers.provider.getBalance(
         owner.address
       );
 
-      // Define the amount to withdraw from the contract
       const withdrawAmount = ethers.parseEther("0.1");
 
-      // Execute the withdrawal function on the contract
       await tokenTaxDistribution.manuallyWithdrawETH(withdrawAmount);
 
-      // Retrieve the final balance of the owner and the contract after withdrawal
       const finalContractBalance = await ethers.provider.getBalance(
         tokenTaxDistribution.target
       );
@@ -179,7 +167,7 @@ describe("TokenTaxDistribution", function () {
     it("Should send ETH to the contract and perform buyback of tokens", async function () {
       const ethAmount = ethers.parseEther("10");
       const [signer] = await ethers.getSigners();
-      // Send ETH to the contract
+
       const tx = await signer.sendTransaction({
         to: tokenTaxDistribution,
         value: ethAmount,
